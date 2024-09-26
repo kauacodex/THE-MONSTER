@@ -102,5 +102,3 @@ Estamos aqui para ajudar! Para dúvidas ou sugestões, entre em contato conosco 
 
 ### 🌟 "Harness the power of knowledge and unleash your curiosity!" 🌟  
 ###### 🌟 "Aproveite o poder do conhecimento e libere sua curiosidade!" 🌟
-
----
