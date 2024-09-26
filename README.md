@@ -41,7 +41,7 @@ Preparado para começar? Siga esses passos simples para instalar o THE MONSTER:
 
 1. **Clone este repositório**:
    ```bash
-   git clone https://github.com/seuusuario/the-monster.git
+   git clone (https://github.com/kauacodex/THE-MONSTER.git
    cd the-monster
    ```
 
