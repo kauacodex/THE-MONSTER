@@ -1,0 +1,7 @@
+threading
+keyboard
+tkinter
+Pillow
+easyocr
+numpy
+groq
