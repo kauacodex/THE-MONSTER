@@ -9,7 +9,7 @@ from groq import Groq
 import os
 
 # Coloque sua chave da API aqui
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "sua_chave_da_api_aqui"
 
 # Configurar o cliente da API do Groq com a chave da API
 client = Groq(api_key=GROQ_API_KEY)
