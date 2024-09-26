@@ -2,19 +2,30 @@ import threading
 import keyboard
 import tkinter as tk
 from tkinter import messagebox
-from PIL import ImageGrab
+from PIL import ImageGrab, ImageFilter, ImageOps
 import easyocr  # Importa o EasyOCR
 import numpy as np  # Importa o NumPy
 from groq import Groq
+import os
 
 # Coloque sua chave da API aqui
-GROQ_API_KEY = "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"
+GROQ_API_KEY = "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"
 
 # Configurar o cliente da API do Groq com a chave da API
 client = Groq(api_key=GROQ_API_KEY)
 
 # Inicializa o leitor do EasyOCR
-reader = easyocr.Reader(["pt"])  # 'pt' para português
+reader = easyocr.Reader(
+    ["pt"], model_storage_directory="easyocr_model"
+)  # 'pt' para português
+
+# Define o nome do arquivo onde a imagem será salva
+IMAGE_FILENAME = "captured_image.png"
+FILTERED_IMAGE_FILENAME = "filtered_image.png"  # Nome para a imagem filtrada
+
+
+def cls():
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 class SelectionArea:
@@ -72,9 +83,19 @@ class SelectionArea:
         self.capture_area(x1, y1, x2, y2)
 
     def capture_area(self, x1, y1, x2, y2):
-        """Captura a imagem da área selecionada."""
+        """Captura a imagem da área selecionada e salva como PNG."""
         image = ImageGrab.grab(bbox=(x1, y1, x2, y2))
-        extracted_text = self.extract_text(image)
+
+        # Salva a imagem capturada como PNG, substituindo a anterior
+        image.save(IMAGE_FILENAME)
+
+        # Pré-processamento da imagem
+        filtered_image = self.preprocess_image(image)
+
+        # Salva a imagem filtrada para referência
+        filtered_image.save(FILTERED_IMAGE_FILENAME)
+
+        extracted_text = self.extract_text(filtered_image)
 
         if extracted_text.strip():
             response = self.get_ai_response(extracted_text)
@@ -82,32 +103,84 @@ class SelectionArea:
         else:
             self.show_popup("Nenhum texto foi extraído.")
 
+    def preprocess_image(self, image):
+        """Pré-processa a imagem para melhorar a detecção de texto."""
+        # Converte para escala de cinza
+        image = image.convert("L")
+        # Aplica um leve desfoque para suavizar a imagem
+        image = image.filter(
+            ImageFilter.GaussianBlur(radius=1)
+        )  # Aumentar o raio, se necessário
+        # Aumenta o contraste
+        image = ImageOps.autocontrast(image)
+
+        return image
+
     def extract_text(self, image):
         """Extrai texto da imagem capturada usando EasyOCR."""
         image_np = np.array(image)  # Converte a imagem para um array NumPy
-        result = reader.readtext(image_np, detail=0)  # detail=0 retorna apenas o texto
-        return " ".join(result)  # Junta as partes do texto extraído
+        result = reader.readtext(
+            image_np,
+            detail=1,
+            min_size=10,  # Ajuste o min_size para garantir que textos pequenos sejam capturados
+            paragraph=True,  # Mantém a formatação em parágrafos
+        )
+
+        # Formatação do texto extraído
+        formatted_text = ""
+
+        for item in result:
+            if len(item) == 3:  # Verifica se há 3 elementos (bbox, text, prob)
+                _, text, _ = item  # Ignora prob
+                formatted_text += text.strip() + " "  # Mantém o texto na mesma linha
+            elif len(item) == 2:  # Se houver apenas bbox e text
+                _, text = item
+                formatted_text += text.strip() + " "  # Mantém o texto na mesma linha
+            else:
+                continue  # Ignora qualquer item que não tenha 2 ou 3 elementos
+
+        # Remover espaços em branco e garantir que quebras de linha sejam respeitadas
+        formatted_text = formatted_text.strip().replace("  ", " ")
+        return formatted_text  # Retorna o texto formatado
 
     def get_ai_response(self, question):
         """Envia a pergunta para a IA do Groq e recebe a resposta com instruções específicas."""
         prompt = (
-            f'Responda à pergunta: "{question}" de forma clara. '
-            f"Para perguntas de múltipla escolha, indique a letra da resposta correta e explique brevemente sua escolha, CASO NAO FOR UMA NOTICIA, IGNORE OS PROMPTS A SEGUIR, MAS SEMPRE PESQUISE CONSUNTE FONTES PARA ACERTAR AS RESPOSTAS, PRINCIPALMENTE FORUNS. NÃO LEIA APENAS O TITULO DA NOTICIA, E SIM ELA COMPLETA. EVITE RESPOSTAS MUITO GRANDES, SEMPRE RESUMIDAMENTE. SE A RESPOSTA CORRETA FOR UMA, NAO COLOQUE OUTRA NA RESPOSTA FINAL. "
-            f"Para perguntas de preencher lacuna, forneça a resposta correta e uma breve explicação. "
-            f"Concentre-se em dados verificáveis e evite suposições, exiba a data que foram feitas as pesquisas, busque respostas mais precisas na internet não exite em pesquisas, sempre pesquise, Pesquise a resposta em outras fontes. Sempre busque responstas mais atualizadas e de fontes confiaveis. Não questione a pergunta, se a pergunta for feita do jeito que tá, é pra ser assim. somente responda."
+            f'Por favor, responda à pergunta: "{question}" de maneira clara e direta. '
+            f"As respostas devem ser curtas e concisas, focando na informação essencial. "
+            f"Use as seguintes diretrizes para a resposta:\n\n"
+            f"1. **Formato da Resposta:**\n"
+            f"   - Inicie com: Resposta: \n"
+            f"   - Em seguida, coloque: Explicação: \n"
+            f"   - Para perguntas de múltipla escolha, analise cada opção e indique a letra da resposta correta. "
+            f"Explique por que essa é a resposta correta e forneça informações relevantes sobre as opções apresentadas.\n"
+            f"   - Para verdadeiro ou falso, use Verdadeiro (V) ou Falso (F).\n"
+            f"   - Para preencher lacunas, forneça a resposta correta e uma breve explicação.\n\n"
+            f"2. **Fontes e Pesquisa:**\n"
+            f"   - Sempre que possível, baseie suas respostas em fontes confiáveis. Pesquise em sites relevantes, especialmente para perguntas relacionadas a regiões ou países. "
+            f"Se a resposta não estiver disponível em fontes confiáveis, utilize seu conhecimento.\n"
+            f"   - Não leia apenas os títulos das notícias; consulte o conteúdo completo para garantir precisão. "
+            f"Se a pergunta for bem formulada, responda diretamente sem questionamentos. Lembre-se de avaliar a veracidade das opções.\n"
+            f"   - Cite a fonte e, se aplicável, a data da publicação (se a informação for de um único site confiável; se vários, não coloque a data).\n\n"
+            f"3. **Considerações Finais:**\n"
+            f"   - Evite respostas longas e complexas. Concentre-se em dados verificáveis e sempre busque as informações mais atualizadas. "
+            f"Uma única resposta correta é permitida. Caso não encontre informações online, utilize seu conhecimento para responder.\n"
+            f"   - Para perguntas de múltipla escolha, verifique os dados mais recentes sobre os refugiados ucranianos e mencione as opções discutidas."
         )
 
+        cls()
+        print("Pressione Windows + Shift + D para iniciar a seleção!")
+        print("")
+        print(question)
+
+        # Chamando a API do Groq para obter a resposta
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-70b-versatile",
+            model="llama3-70b-8192",
         )
 
-        # Separa resposta e explicação
-        response_content = chat_completion.choices[0].message.content
-        if "Explicação:" in response_content:  # Supondo que o modelo usa esse formato
-            answer, explanation = response_content.split("Explicação:", 1)
-            return f"Resposta: {answer.strip()}\n\nExplicação: {explanation.strip()}"
-        return response_content  # Retorna a resposta se não houver explicação
+        # Retorna a resposta
+        return chat_completion.choices[0].message.content.strip()
 
     def show_popup(self, message):
         """Exibe um popup com a mensagem da IA."""
@@ -135,5 +208,6 @@ def on_hotkey():
 keyboard.add_hotkey("win+shift+d", on_hotkey)
 
 # Mantém o script rodando
+cls()
 print("Pressione Win + Shift + D para capturar a tela e extrair texto.")
 keyboard.wait()  # O script ficará rodando indefinidamente
