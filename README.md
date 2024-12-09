@@ -84,7 +84,7 @@ Agora que você está pronto para usar o THE MONSTER, siga estas etapas:
 **Estamos sempre abertos a novas contribuições!** Se você tem ideias, sugestões ou melhorias, não hesite em abrir issues ou pull requests. Junte-se à nossa comunidade e ajude a tornar o THE MONSTER ainda melhor!
 
 ### 🎉 **Colaboradores:**
-- *GitHub:* [**/kauacodex**](https://github.com/kauacodex)  🌐
+- *GitHub:* [**/zKauaFerreira**](https://github.com/zkauaFerreira)  🌐
 - *GitHub:* [**/dasilva95Ro**](https://github.com/dasilva95Ro)  🌐
 - *GitHub:* [**/carluxxo**](https://github.com/carluxxo)  🌐
 
