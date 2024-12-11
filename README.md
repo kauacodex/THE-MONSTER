@@ -92,7 +92,7 @@ Agora que você está pronto para usar o THE MONSTER, siga estas etapas:
 
 ## 📜 **Licença**
 
-Este projeto está licenciado sob a **MIT License**. Para mais detalhes, consulte o arquivo [**LICENSE**](https://github.com/kauacodex/THE-MONSTER/blob/main/LICENCE).
+Este projeto está licenciado sob a **MIT License**. Para mais detalhes, consulte o arquivo [**LICENSE**](https://github.com/zKauaFerreira/THE-MONSTER/blob/main/LICENCE).
 
 ---
 
